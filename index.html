@@ -1,12 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+
 <body>
-    
+    <label for="#"></label><input type="date" name="date" id="dateFirst">
+    <label for="#"></label><input type="date" name="date" id="dateLast">
+    <button>Рассчитать</button>
+    <div id="info"></div>
+    <script>
+
+        let btn = document.querySelector('button');
+        let info = document.querySelector('#info')
+
+        function createDate(dateValue) {
+            let currentDate
+            if (dateValue) {
+                currentDate = new Date(dateValue)
+            } else {
+                currentDate = new Date()
+            }
+            let currentDay = currentDate.getDate()
+            if (currentDay < 10) {
+                currentDay = `0${currentDay}`
+            }
+            let currentMonth = currentDate.getMonth() + 1
+            if (currentMonth < 10) {
+                currentMonth = `0${currentMonth}`
+            }
+            let currentYear = currentDate.getFullYear()
+            return `${currentYear}-${currentMonth}-${currentDay}`
+        }
+        let maxDate = createDate();
+
+        btn.addEventListener('click', function () {
+
+            let first = document.querySelector('#dateFirst').value
+            let last = document.querySelector('#dateLast').value
+
+            if ((first || last) > maxDate || first > last || (first || last) === '') {
+                return
+            }
+            function getDates(first, last) {
+                let arrayOfDates = []
+                let startDate = Date.parse(first)
+                while (startDate <= Date.parse(last)) {
+                    startDate += 24 * 3600 * 1000;
+                    let date = createDate(startDate)
+                    arrayOfDates.push(date)
+                }
+                return arrayOfDates
+            }
+            getDates(first, last)
+            let currency = getDates(first, last).map(date => fetch(`https://www.nbrb.by/api/exrates/rates/usd?parammode=2&ondate=${date}`)
+                .then(response => response.json())
+                .then(response => response.Cur_OfficialRate))
+            Promise.all(currency).then(rates => {
+                let datesWithRates = {}
+                rates.forEach((i, ind) => {
+                    datesWithRates[getDates(first, last)[ind]] = i
+                })
+                let min = datesWithRates[getDates(first, last)[0]]
+                let max = datesWithRates[getDates(first, last)[0]]
+                let minDate = getDates(first, last)[0]
+                let maxDate = getDates(first, last)[0]
+                for (key in datesWithRates) {
+                    if (datesWithRates[key] > max) {
+                        max = datesWithRates[key]
+                        maxDate = key
+                    } else if (datesWithRates[key] < min) {
+                        min = datesWithRates[key]
+                        minDate = key
+                    }
+                }
+                info.innerHTML = `Min USD: ${min} - ${minDate} </br> Max USD: ${max} - ${maxDate}`
+            })
+        })
+
+    </script>
 </body>
+
 </html>
